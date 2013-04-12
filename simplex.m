@@ -1,73 +1,52 @@
-function [C,xs]=simplex(A,b,c,n,m)
-	itr = 0;
-    Nb = 1:1:n;
-	Bb = n+1:1:n+m;
-	B = eye(m);
-	N = A;
-	xBs = b;
-	zNs = -c;
-	while (min(zNs) < 0)
-		% step 2
-		j = 1;
-		zj = zNs(j,1);
-		while zj >= 0
-			zj = zNs(j+1,1);
-			j = j+1;
-		end
-		% step 3
-		ej = zeros(n,1);
-		ej(j) = 1;
-		dxB = B\(N*ej);
-		% step 4
-		[t i] = max(dxB./xBs);
-		t = 1/t;
-		% step 5
-		if (length(i) > 1)
-			i = i(1);
-			t = t(1);
+function [C, iterations] = simplex_new(A, b, c)
+    n = size(A,2);
+    m = size(b,1);
+    iterations = 0;
+    N_indices = 1:1:n;
+    B_indices = n+1:1:m+n;
+    size(B_indices)
+    B = eye(m);
+    N = A;
+    xs_B = b;
+    zs_N = -c;
+    while(min(zs_N) < 0)
+        % step 2
+        [tmp j] = min(zs_N);
+        % step 3
+        e_j = zeros(n, 1);
+        e_j(j) = 1;
+        dx_B = B\(N*e_j);
+        % step 4 and 5
+        [maximum i] = max(dx_B./xs_B);
+        if(maximum <= 0)
+            printf('unbounded')
+            break
         end
-		% step 6
-		ei = zeros(m,1);
-		ei(i) = 1;
-        BiN = B\N;
-        dzN  = -(BiN)'*ei;
-		% step 7
-		s = zNs(j)/dzN(j);
-		% step 8
-		xjs = t;
-		xBs = xBs - t*dxB;
-		xBs(i) = xjs;
-		zis = s;
-		zNs = zNs - s*dzN;
-		zNs(j) = zis;
-		% step 9
-		colN = N(1:m,j);
-		colB = B(1:m,i);
-		N(1:m,j) = colB;
-		B(1:m,i) = colN;	
-		Ntmp = Nb(j);	
-		Nb(j) = Bb(i);
-		Bb(i) = Ntmp;
-        % iteration and objective function
-        C = 0;
-        xs = zeros(n,1);
-        for i=1:m
-            if (Bb(i) <= n)
-                 C = C + c(Bb(i))*xBs(i);
-                 xs(Bb(i))=xBs(i);
-            end
-        end
-        itr = itr + 1;
-        fprintf('Simplex: Iteration=%d, C=%f\n',itr,C)
+        t = 1./maximum;
+        % step 6
+        e_i = zeros(m, 1);
+        e_i(i) = 1;
+        dz_N = -(B\N)'*e_i;
+        % step 7
+        s = zs_N(j)/dz_N(j);
+        % step 8
+        xs_B = xs_B - t*dx_B;
+        xs_B(i) = t;
+        zs_N = zs_N - s*dz_N;
+        zs_N(j) = s; 
+        % step 9
+        tmp = B(:,i);
+        B(:,i) = N(:, j);
+        N(:,j) = tmp;
+        tmp = B_indices(i);
+        B_indices(i) = N_indices(j);
+        N_indices(j) = tmp;
+        iterations = iterations + 1;
     end
     C = 0;
-    xs = zeros(n,1);
     for i=1:m
-        if (Bb(i) <= n)
-            C = C + c(Bb(i))*xBs(i);
-            xs(Bb(i))=xBs(i);
+        if (B_indices(i) <= n)
+            C = C + c(B_indices(i))*xs_B(i);
         end
     end
-    fprintf('Simplex: Total Iterations=%d, C=%f\n',itr,C)
-    
-	
+end 
